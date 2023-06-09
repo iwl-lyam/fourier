@@ -29,10 +29,12 @@ def wave(hz):
 t_samples = np.arange(fs * duration)
 waveform = 0
 
-values = input("Enter comma separated values for tone frequencies (Hz): ")
+values = input("Enter the comma separated values for tone frequencies (Hz): ")
 waveform = sum([ wave(int(x)) for x in values.split(",") ])
 
-waveform *= 0.001
+mf = float(input("Enter the multiplying factor (for finetuning, otherwise enter 0.1): "))
+waveform *= mf
+
 audio = np.int16(waveform * 32767)
 
 sd.play(audio, fs)
@@ -41,7 +43,38 @@ sd.play(audio, fs)
 num_sections = int(duration / section_duration)
 sections = np.array_split(audio, num_sections)
 
+def calculate_frequency(note_name):
+    # Define the reference frequency of A4 (440 Hz)
+    reference_frequency = 440.0
 
+    # Define the mapping between note names and their corresponding steps
+    note_steps = {
+        'C': -9, 'C#': -8, 'Db': -8,
+        'D': -7, 'D#': -6, 'Eb': -6,
+        'E': -5,
+        'F': -4, 'F#': -3, 'Gb': -3,
+        'G': -2, 'G#': -1, 'Ab': -1,
+        'A': 0, 'A#': 1, 'Bb': 1,
+        'B': 2
+    }
+
+    # Extract the note name and octave number from the input
+    note_name = note_name.strip().upper()
+    try:
+        note = note_name[0]
+        octave = int(note_name[1])
+    except:
+        note = note_name[0]+note_name[1]
+        octave = int(note_name[2])
+        
+
+    # Calculate the number of steps from A4
+    steps = note_steps[note] + (octave - 4) * 12
+
+    # Calculate the frequency using the formula: frequency = reference_frequency * 2^(steps/12)
+    frequency = reference_frequency * pow(2, steps / 12)
+
+    return frequency
 
 notes = []
 for i, section in enumerate(sections):
@@ -65,7 +98,7 @@ for i, section in enumerate(sections):
     print("Positive peak frequencies and musical notes:")
     for freq in positive_peak_frequencies:
         amp = np.abs(F)[np.where(freqs == freq)]
-        if freq > 7902.13 or amp < 0.00004:  # Limit to B8 (7902.13 Hz) and amplitude threshold
+        if freq > 7902.13 or freq < 27 or amp < 0.00004:  # Limit to B8 (7902.13 Hz) and amplitude threshold
             continue
 
         played_frequencies.append(freq)
@@ -88,7 +121,7 @@ for i, section in enumerate(sections):
         }
         octave = int((round(note) - 12) / 12)
         note_string = note_name_dict[note_name] + str(octave)
-        print("{:.2f} Hz - {}".format(freq, note_string))
+        # print("{:.2f} Hz - {}".format(freq, note_string))
 
         try:
 
@@ -97,10 +130,21 @@ for i, section in enumerate(sections):
         except:
           note_count[note_string] = amp.item()
 
-    # Create bar chart
-    plt.figure()
     notes = list(note_count.keys())
     note_probabilities = list(note_count.values())
+    new_wave = 0
+
+    print("Building output")
+    for i in range(len(note_count)):
+        new_wave += wave(calculate_frequency(notes[i])) * note_probabilities[i]/10000
+
+    input("Press enter to play....")
+    # new_wave *= mf
+    sd.play(new_wave,fs)
+
+    # Create bar chart
+    plt.figure()
+    
     plt.bar(notes, note_probabilities)
     plt.xlabel('Note')
     plt.ylabel('Note Probability')
