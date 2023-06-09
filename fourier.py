@@ -1,5 +1,5 @@
 import numpy as np
-# import sounddevice as sd
+import sounddevice as sd
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 
@@ -32,12 +32,16 @@ waveform = 0
 values = input("Enter comma separated values for tone frequencies (Hz): ")
 waveform = sum([ wave(int(x)) for x in values.split(",") ])
 
-waveform *= 0.1
+waveform *= 0.001
 audio = np.int16(waveform * 32767)
+
+sd.play(audio, fs)
 
 # Split audio into sections
 num_sections = int(duration / section_duration)
 sections = np.array_split(audio, num_sections)
+
+
 
 notes = []
 for i, section in enumerate(sections):
