@@ -2,46 +2,63 @@ import numpy as np
 import sounddevice as sd
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
+import operator
+import sys
 
 section_duration = float(input("Enter the section duration in seconds: "))  # Duration of each section in seconds
 fs = 44100  # Sampling rate
 
 # Record audio
 duration = float(input("Enter the recording duration in seconds: "))
-
-# input("Press enter to start recording")
-
-# print("Recording started.")
-# audio = sd.rec(int(duration * fs), samplerate=fs, channels=1)
-# sd.wait()
-# print("Recording finished.")
-
-# sd.wait()
-
-# # Flatten audio
-# audio = audio.flatten()
+mf = float(input("Enter the multiplying factor (for finetuning, otherwise enter 0.1): "))
+t_samples = np.arange(fs * duration)
 
 def wave(hz):
   global t_samples,fs
   return np.sin(2*np.pi*hz*t_samples/fs)
 
+num_sections = 10000
+sections = [None]*10000
 
-t_samples = np.arange(fs * duration)
-waveform = 0
+audio = 0
+live = False
+if input("Record? (Y/N): ") == "Y":
+    input("Press enter to start recording")
 
-values = input("Enter the comma separated values for tone frequencies (Hz): ")
-waveform = sum([ wave(int(x)) for x in values.split(",") ])
+    print("Recording started.")
+    audio = sd.rec(int(duration * fs), samplerate=fs, channels=1)
+    sd.wait()
+    print("Recording finished.")
 
-mf = float(input("Enter the multiplying factor (for finetuning, otherwise enter 0.1): "))
-waveform *= mf
+    sd.wait()
 
-audio = np.int16(waveform * 32767)
+    # Flatten audio
+    audio = audio.flatten()
+    sd.play(audio, fs)
+    # Split audio into sections
+    num_sections = int(duration / section_duration)
+    sections = np.array_split(audio, num_sections)
 
-sd.play(audio, fs)
+elif input("Use flat tone? (Y/N): ") == "Y":
+    waveform = 0
 
-# Split audio into sections
-num_sections = int(duration / section_duration)
-sections = np.array_split(audio, num_sections)
+    values = input("Enter the comma separated values for tone frequencies (Hz): ")
+    waveform = sum([ wave(int(x)) for x in values.split(",") ])
+
+    waveform *= mf
+
+    audio = np.int16(waveform * 32767)
+    sd.play(audio, fs)
+    # Split audio into sections
+    num_sections = int(duration / section_duration)
+    sections = np.array_split(audio, num_sections)
+
+elif input("Process audio live? (Y/N): ") == "Y":
+    live = True
+else:
+    sys.exit("No option selected")
+
+
 
 def calculate_frequency(note_name):
     # Define the reference frequency of A4 (440 Hz)
@@ -77,8 +94,15 @@ def calculate_frequency(note_name):
     return frequency
 
 notes = []
-for i, section in enumerate(sections):
-    print("Analyzing section {}/{}".format(i + 1, num_sections))
+for i in range(num_sections):
+    section = sections[i]
+    # print("Analyzing section {}/{}".format(i + 1, num_sections))
+    new_audio = 0
+    if live == True:
+        a = sd.rec(int(section_duration * fs), samplerate=fs, channels=1)
+        sd.wait()
+        section = a.flatten()
+        section = np.multiply(section,75)
 
     # Apply Fourier Transform
     F = np.fft.fftshift(np.fft.fft(np.fft.fftshift(section))) / len(section)
@@ -95,7 +119,7 @@ for i, section in enumerate(sections):
     played_frequencies = []
     note_count = {}
 
-    print("Positive peak frequencies and musical notes:")
+    # print("Positive peak frequencies and musical notes:")
     for freq in positive_peak_frequencies:
         amp = np.abs(F)[np.where(freqs == freq)]
         if freq > 7902.13 or freq < 27 or amp < 0.00004:  # Limit to B8 (7902.13 Hz) and amplitude threshold
@@ -124,33 +148,40 @@ for i, section in enumerate(sections):
         # print("{:.2f} Hz - {}".format(freq, note_string))
 
         try:
-
           if note_count[note_string] < amp.item():
             note_count[note_string] = amp.item()
         except:
           note_count[note_string] = amp.item()
 
-    notes = list(note_count.keys())
-    note_probabilities = list(note_count.values())
-    new_wave = 0
+    try:
+        # print(note_count.keys())
+        print(i,max(note_count.items(), key=operator.itemgetter(1))[0])
+    except:
+        print("No notes found")
 
-    print("Building output")
-    for i in range(len(note_count)):
-        new_wave += wave(calculate_frequency(notes[i])) * note_probabilities[i]/10000
+    # notes = list(note_count.keys())
+    # note_probabilities = list(note_count.values())
+    # new_wave = 0
 
-    input("Press enter to play....")
-    # new_wave *= mf
-    sd.play(new_wave,fs)
+    # print("Building output")
+    # for o in range(len(note_count)):
+    #     new_wave += wave(calculate_frequency(notes[o])) * note_probabilities[o]
 
-    # Create bar chart
-    plt.figure()
+    # input("Press enter to play....")
+    # # new_wave *= mf
+    # sd.play(new_wave,fs)
+
+    # sd.wait()
+
+    # # Create bar chart
+    # plt.figure()
     
-    plt.bar(notes, note_probabilities)
-    plt.xlabel('Note')
-    plt.ylabel('Note Probability')
-    plt.title('Detected Notes - Section {}/{}'.format(i + 1, num_sections))
-    plt.grid(True)
-    plt.show()
+    # plt.bar(notes, note_probabilities)
+    # plt.xlabel('Note')
+    # plt.ylabel('Note Probability')
+    # plt.title('Detected Notes - Section {}/{}'.format(i + 1, num_sections))
+    # plt.grid(True)
+    # plt.show()
 
 plt.plot(freqs, np.abs(F))
 plt.plot(freqs[peaks], np.abs(F)[peaks], 'ro') 
