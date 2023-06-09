@@ -1,115 +1,108 @@
 import numpy as np
-import sounddevice as sd
+# import sounddevice as sd
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 
+section_duration = float(input("Enter the section duration in seconds: "))  # Duration of each section in seconds
+fs = 44100  # Sampling rate
+
+# Record audio
 duration = float(input("Enter the recording duration in seconds: "))
 
-fs = 44100
-N = int(duration * fs)
+# input("Press enter to start recording")
 
-input("Press enter to start recording")
+# print("Recording started.")
+# audio = sd.rec(int(duration * fs), samplerate=fs, channels=1)
+# sd.wait()
+# print("Recording finished.")
 
-print("Recording started.")
-audio = sd.rec(N, samplerate=fs, channels=1)
-sd.wait()
-print("Recording finished.")
+# sd.wait()
 
-sd.wait()
+# # Flatten audio
+# audio = audio.flatten()
 
-print("Flattening audio")
-audio = audio.flatten()
+def wave(hz):
+  global t_samples,fs
+  return np.sin(2*np.pi*hz*t_samples/fs)
 
-print("Apply Fourier Transform")
-F = np.fft.fftshift(np.fft.fft(np.fft.fftshift(audio))) / N
 
-print("Find frequencies")
-freqs = np.fft.fftshift(np.fft.fftfreq(N, 1/fs))
-omega = 2 * np.pi * freqs
+t_samples = np.arange(fs * duration)
+waveform = 0
 
-print("Detect peaks")
-peaks, _ = find_peaks(np.abs(F))
+values = input("Enter comma separated values for tone frequencies (Hz): ")
+waveform = sum([ wave(int(x)) for x in values.split(",") ])
 
-peak_frequencies = omega[peaks]
-peak_amplitudes = np.abs(F)[peaks]
+waveform *= 0.1
+audio = np.int16(waveform * 32767)
 
-positive_peak_frequencies = peak_frequencies[peak_frequencies > 0]
-positive_peak_amplitudes = peak_amplitudes[peak_frequencies > 0]
+# Split audio into sections
+num_sections = int(duration / section_duration)
+sections = np.array_split(audio, num_sections)
 
-played_frequencies = []
-note_count = {}
+notes = []
+for i, section in enumerate(sections):
+    print("Analyzing section {}/{}".format(i + 1, num_sections))
 
-print("Positive peak frequencies and musical notes:")
-for freq, amp in zip(positive_peak_frequencies, positive_peak_amplitudes):
-    if freq > 7902.13 or amp < 0.00004:  # Limit to B8 (7902.13 Hz) and minimum amplitude
-        continue
-    
-    played_frequencies.append(freq)
-    if freq / 2 in played_frequencies:
-        continue
-    
-    note = 69 + 12 * np.log2(freq / 440)
-    note_name = round(note) % 12
-    note_name_dict = {
-        0: 'C',
-        1: 'C#',
-        2: 'D',
-        3: 'D#',
-        4: 'E',
-        5: 'F',
-        6: 'F#',
-        7: 'G',
-        8: 'G#',
-        9: 'A',
-        10: 'A#',
-        11: 'B'
-    }
-    octave = int((round(note) - 12) / 12)
-    note_string = note_name_dict[note_name] + str(octave)
-    print("{:.2f} Hz - {}".format(freq, note_string))
-    
-    # Update note count
-    if note_string in note_count:
-        note_count[note_string] += amp
-    else:
-        note_count[note_string] = amp
+    # Apply Fourier Transform
+    F = np.fft.fftshift(np.fft.fft(np.fft.fftshift(section))) / len(section)
 
-print("Note Count:")
-for note, count in note_count.items():
-    print("{}: {:.4f}".format(note, count))
+    # Find frequencies
+    freqs = np.fft.fftshift(np.fft.fftfreq(len(section), 1 / fs))
 
-# Create bar graph
-notes = list(note_count.keys())
-counts = list(note_count.values())
+    # Detect peaks
+    peaks, _ = find_peaks(np.abs(F))
+    peak_frequencies = freqs[peaks]
 
-plt.bar(notes, counts)
-plt.xlabel('Musical Note')
-plt.ylabel('Count')
-plt.title('Note Count')
-plt.grid(True)
-plt.show()
+    positive_peak_frequencies = peak_frequencies[peak_frequencies > 0]
 
-print("Creating output audio", len(played_frequencies))
-duration = len(audio) / fs
+    played_frequencies = []
+    note_count = {}
 
-composite_tone = np.zeros_like(audio, dtype=float)
+    print("Positive peak frequencies and musical notes:")
+    for freq in positive_peak_frequencies:
+        amp = np.abs(F)[np.where(freqs == freq)]
+        if freq > 7902.13 or amp < 0.00004:  # Limit to B8 (7902.13 Hz) and amplitude threshold
+            continue
 
-for freq in played_frequencies:
-    tone_duration = 0.001  # Tone duration of 1 ms
-    num_samples = int(tone_duration * fs)
-    tone = np.sin(2 * np.pi * freq * np.arange(num_samples) / fs)
-    tone /= np.max(np.abs(tone))
-    composite_tone[:num_samples] += tone
+        played_frequencies.append(freq)
 
-composite_tone /= np.max(np.abs(composite_tone))
+        note = 69 + 12 * np.log2(freq / 440)
+        note_name = round(note) % 12
+        note_name_dict = {
+            0: 'C',
+            1: 'C#',
+            2: 'D',
+            3: 'D#',
+            4: 'E',
+            5: 'F',
+            6: 'F#',
+            7: 'G',
+            8: 'G#',
+            9: 'A',
+            10: 'A#',
+            11: 'B'
+        }
+        octave = int((round(note) - 12) / 12)
+        note_string = note_name_dict[note_name] + str(octave)
+        print("{:.2f} Hz - {}".format(freq, note_string))
 
-input("Press enter to play audio")
-print("Playing recorded audio and composite tone...")
-sd.play(np.column_stack((audio, composite_tone)), samplerate=fs)
-sd.wait()
+        try:
 
-print("Analyzing audio")
-print("Plotting audio onto a chart")
+          if note_count[note_string] < amp.item():
+            note_count[note_string] = amp.item()
+        except:
+          note_count[note_string] = amp.item()
+
+    # Create bar chart
+    plt.figure()
+    notes = list(note_count.keys())
+    note_probabilities = list(note_count.values())
+    plt.bar(notes, note_probabilities)
+    plt.xlabel('Note')
+    plt.ylabel('Note Probability')
+    plt.title('Detected Notes - Section {}/{}'.format(i + 1, num_sections))
+    plt.grid(True)
+    plt.show()
 
 plt.plot(freqs, np.abs(F))
 plt.plot(freqs[peaks], np.abs(F)[peaks], 'ro') 
