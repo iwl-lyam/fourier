@@ -102,7 +102,7 @@ for i in range(num_sections):
         a = sd.rec(int(section_duration * fs), samplerate=fs, channels=1)
         sd.wait()
         section = a.flatten()
-        section = np.multiply(section,75)
+        section = np.multiply(section,1000)
 
     # Apply Fourier Transform
     F = np.fft.fftshift(np.fft.fft(np.fft.fftshift(section))) / len(section)
