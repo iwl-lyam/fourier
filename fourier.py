@@ -169,8 +169,6 @@ for i in range(num_sections):
     avg = sum(vals_list) / len(note_names_list)
     output = ""
 
-    print("Avg", avg)
-
     for note in reversed(sorted(note_count.items(), key=lambda x: x[1])):
         if note[1] > avg * accuracy:
             output += f"{note[0]} "
