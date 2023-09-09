@@ -2,27 +2,35 @@ import numpy as np
 import sounddevice as sd
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
-import operator
 import sys
 
-section_duration = float(input("Enter the section duration in seconds: "))  # Duration of each section in seconds
 fs = 44100  # Sampling rate
 
 # Record audio
-duration = float(input("Enter the recording duration in seconds: "))
-mf = float(input("Enter the multiplying factor (for finetuning, otherwise enter 0.1): "))
-t_samples = np.arange(fs * duration)
+section_duration = float(
+    input("Enter the duration of each division in seconds: "))  # Duration of each section in seconds
+
 
 def wave(hz):
-  global t_samples,fs
-  return np.sin(2*np.pi*hz*t_samples/fs)
+    global fs
+    duration = float(input(f"Enter the duration for the {hz} Hz wave in seconds: "))
+    t_samples = np.arange(fs * duration)
+    return np.sin(2 * np.pi * hz * t_samples / fs)
+
 
 num_sections = 10000
-sections = [None]*10000
+sections = [None] * 10000
 
 audio = 0
 live = False
+
+duration = 2
+mf = 0.1
 if input("Record? (Y/N): ") == "Y":
+    duration = float(input("Enter the recording duration in seconds: "))
+    mf = float(input("Enter the multiplying factor (for finetuning, otherwise enter 0.1): "))
+    t_samples = np.arange(fs * duration)
+
     input("Press enter to start recording")
 
     print("Recording started.")
@@ -40,10 +48,9 @@ if input("Record? (Y/N): ") == "Y":
     sections = np.array_split(audio, num_sections)
 
 elif input("Use flat tone? (Y/N): ") == "Y":
-    waveform = 0
 
     values = input("Enter the comma separated values for tone frequencies (Hz): ")
-    waveform = sum([ wave(int(x)) for x in values.split(",") ])
+    waveform = note_sum([wave(int(x)) for x in values.split(",")])
 
     waveform *= mf
 
@@ -57,7 +64,6 @@ elif input("Process audio live? (Y/N): ") == "Y":
     live = True
 else:
     sys.exit("No option selected")
-
 
 
 def calculate_frequency(note_name):
@@ -81,9 +87,8 @@ def calculate_frequency(note_name):
         note = note_name[0]
         octave = int(note_name[1])
     except:
-        note = note_name[0]+note_name[1]
+        note = note_name[0] + note_name[1]
         octave = int(note_name[2])
-        
 
     # Calculate the number of steps from A4
     steps = note_steps[note] + (octave - 4) * 12
@@ -93,16 +98,21 @@ def calculate_frequency(note_name):
 
     return frequency
 
+
 notes = []
+accuracy = int(input('''
+How much do you want the average to be scaled by?
+Put a number between 1 and 1.5 if you have a lot of notes at the same time, and between 1 and 
+3 if you have less notes playing. Mess around with this value until you find what fits your audio.'''))
 for i in range(num_sections):
     section = sections[i]
     # print("Analyzing section {}/{}".format(i + 1, num_sections))
     new_audio = 0
-    if live == True:
+    if live is True:
         a = sd.rec(int(section_duration * fs), samplerate=fs, channels=1)
         sd.wait()
         section = a.flatten()
-        section = np.multiply(section,1000)
+        section = np.multiply(section, 1000)
 
     # Apply Fourier Transform
     F = np.fft.fftshift(np.fft.fft(np.fft.fftshift(section))) / len(section)
@@ -148,16 +158,28 @@ for i in range(num_sections):
         # print("{:.2f} Hz - {}".format(freq, note_string))
 
         try:
-          if note_count[note_string] < amp.item():
-            note_count[note_string] = amp.item()
+            if note_count[note_string] < amp.item():
+                note_count[note_string] = amp.item()
         except:
-          note_count[note_string] = amp.item()
+            note_count[note_string] = amp.item()
 
-    try:
-        # print(note_count.keys())
-        print(i,max(note_count.items(), key=operator.itemgetter(1))[0])
-    except:
-        print("No notes found")
+    note_names_list = list(note_count.keys())
+    vals_list = list(note_count.values())
+
+    avg = sum(vals_list) / len(note_names_list)
+    output = ""
+
+    print("Avg", avg)
+
+    for note in reversed(sorted(note_count.items(), key=lambda x: x[1])):
+        if note[1] > avg * accuracy:
+            output += f"{note[0]} "
+
+    # print(note_count.keys())
+    if output != "":
+        print("Division", str(i) + ":", output)
+    else:
+        print("Division", str(i) + ": No notes found")
 
     # notes = list(note_count.keys())
     # note_probabilities = list(note_count.values())
@@ -173,9 +195,9 @@ for i in range(num_sections):
 
     # sd.wait()
 
-    # # Create bar chart
+    # Create bar chart
     # plt.figure()
-    
+
     # plt.bar(notes, note_probabilities)
     # plt.xlabel('Note')
     # plt.ylabel('Note Probability')
@@ -184,7 +206,7 @@ for i in range(num_sections):
     # plt.show()
 
 plt.plot(freqs, np.abs(F))
-plt.plot(freqs[peaks], np.abs(F)[peaks], 'ro') 
+plt.plot(freqs[peaks], np.abs(F)[peaks], 'ro')
 plt.xlabel('Frequency (Hz)')
 plt.ylabel('Amplitude')
 plt.title('Real-time Fourier Transform')
