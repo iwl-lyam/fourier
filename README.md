@@ -16,7 +16,7 @@ You will need the following from PIP:
   - In live mode, the microphone is enabled for the division length.
   - The optimal division length is usually 0.3 seconds
     - If the division length is too low, the fourier transform won't work properly and the output will be wrong.
-    - If the division length is too high, the fourier transform will be applied over a longer audio file, therefore being less accurate.
+    - If the division length is too high, the fourier transform will be applied over a longer audio file, therefore being less accurate. The computation speed for each division will be very slow as well.
 - For more accuracy in all modes, you should keep the average modifier between 1 and 1.5 when the texture of the input is thick (lots of notes) and between 1 and 5 when the input is thin (fewer notes). You will need to change this to fit your needs. It should not go below 1.
   - If you receive "No notes found" when the input should have notes, you need to lower the modifier.
   - If you receive lots of notes when the input has no notes, you need to raise the modifier. Be careful, raising this too high could cause actual notes to not be detected.
