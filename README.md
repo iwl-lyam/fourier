@@ -1,7 +1,9 @@
 # Fourier
-Fourier is a program that uses the 
-Fast Fourier Transform to take in a 
-sound input with 3 modes: Recording, Pure tone, and Live.
+Fourier is a program that uses the Fast Fourier Transform to take in a sound input with 3 modes: Recording, Pure tone, and Live.
+
+- (1) Recording mode takes in a sound file and outputs the notes in the file.
+- (2) Pure tone mode takes in a list of frequencies and applies the fourier transform to find the notes.
+- (3) Live mode takes in a sound input from the microphone and outputs the notes every period inputted in every division.
 
 ## Installation
 You will need the following from PIP:

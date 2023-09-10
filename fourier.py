@@ -6,19 +6,37 @@ import sys
 
 fs = 44100  # Sampling rate
 
-# Record audio
-section_duration = float(
-    input("Enter the duration of each division in seconds: "))  # Duration of each section in seconds
+print('''
+  _____                _           
+ |  ___|__  _   _ _ __(_) ___ _ __ 
+ | |_ / _ \| | | | '__| |/ _ \ '__|
+ |  _| (_) | |_| | |  | |  __/ |   
+ |_|  \___/ \__,_|_|  |_|\___|_|                                      
+ ''')
 
 
 def wave(hz):
     global fs
-    duration = float(input(f"Enter the duration for the {hz} Hz wave in seconds: "))
-    t_samples = np.arange(fs * duration)
-    return np.sin(2 * np.pi * hz * t_samples / fs)
+    dur = float(input(f"Enter the duration for the {hz} Hz wave in seconds: "))
+    t_s = np.arange(fs * dur)
+    return np.sin(2 * np.pi * hz * t_s / fs)
 
 
-num_sections = 10000
+def note_sum(waveforms):
+    if len(waveforms) == 0:
+        return np.zeros_like(waveforms[0])
+
+    waveform_length = len(waveforms[0])
+    for waveform in waveforms:
+        if len(waveform) != waveform_length:
+            raise ValueError("All waveforms must have the same length")
+
+    result_waveform = np.sum(waveforms, axis=0)
+
+    return result_waveform
+
+
+num_sections = 1000000000000
 sections = [None] * 10000
 
 audio = 0
@@ -26,9 +44,14 @@ live = False
 
 duration = 2
 mf = 0.1
-if input("Record? (Y/N): ") == "Y":
+
+mode = input("Select mode (view docs): ")
+section_duration = float(
+    input("Enter the duration of each division in seconds: "))  # Duration of each section in seconds
+
+
+if mode == "1":
     duration = float(input("Enter the recording duration in seconds: "))
-    mf = float(input("Enter the multiplying factor (for finetuning, otherwise enter 0.1): "))
     t_samples = np.arange(fs * duration)
 
     input("Press enter to start recording")
@@ -47,7 +70,7 @@ if input("Record? (Y/N): ") == "Y":
     num_sections = int(duration / section_duration)
     sections = np.array_split(audio, num_sections)
 
-elif input("Use flat tone? (Y/N): ") == "Y":
+elif mode == "2":
 
     values = input("Enter the comma separated values for tone frequencies (Hz): ")
     waveform = note_sum([wave(int(x)) for x in values.split(",")])
@@ -60,10 +83,10 @@ elif input("Use flat tone? (Y/N): ") == "Y":
     num_sections = int(duration / section_duration)
     sections = np.array_split(audio, num_sections)
 
-elif input("Process audio live? (Y/N): ") == "Y":
+elif mode == "3":
     live = True
 else:
-    sys.exit("No option selected")
+    sys.exit("Invalid mode, exiting")
 
 
 def calculate_frequency(note_name):
