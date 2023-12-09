@@ -123,7 +123,7 @@ def calculate_frequency(note_name):
 
 
 notes = []
-accuracy = int(input('''
+accuracy = float(input('''
 How much do you want the average to be scaled by?
 Put a number between 1 and 1.5 if you have a lot of notes at the same time, and between 1 and 
 3 if you have less notes playing. Mess around with this value until you find what fits your audio.'''))
@@ -189,8 +189,14 @@ for i in range(num_sections):
     note_names_list = list(note_count.keys())
     vals_list = list(note_count.values())
 
-    avg = sum(vals_list) / len(note_names_list)
+    try:
+        avg = sum(vals_list) / len(note_names_list)
+
+    except ZeroDivisionError:
+        avg = 0
+
     output = ""
+
 
     for note in reversed(sorted(note_count.items(), key=lambda x: x[1])):
         if note[1] > avg * accuracy:
