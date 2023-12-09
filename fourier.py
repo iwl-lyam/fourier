@@ -1,3 +1,5 @@
+"""Fourier, a program to find notes from audio."""
+
 import sys
 
 import numpy as np
@@ -192,15 +194,15 @@ for i in range(NUM_SECTIONS):
     vals_list = list(note_count.values())
 
     try:
-        avg = sum(vals_list) / len(note_names_list)
+        AVG = sum(vals_list) / len(note_names_list)
 
     except ZeroDivisionError:
-        avg = 0
+        AVG = 0
 
     OUTPUT = ""
 
     for note in reversed(sorted(note_count.items(), key=lambda x: x[1])):
-        if note[1] > avg * accuracy:
+        if note[1] > AVG * accuracy:
             OUTPUT += f"{note[0]} "
 
     # print(note_count.keys())
