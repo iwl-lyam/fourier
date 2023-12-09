@@ -1,34 +1,36 @@
+import sys
+
 import numpy as np
 import sounddevice as sd
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
-import sys
 
-fs = 44100  # Sampling rate
+FS = 44100  # Sampling rate
 
 print('''
   _____                _           
  |  ___|__  _   _ _ __(_) ___ _ __ 
- | |_ / _ \| | | | '__| |/ _ \ '__|
+ | |_ / _ \\| | | | '__| |/ _ \\ '__|
  |  _| (_) | |_| | |  | |  __/ |   
- |_|  \___/ \__,_|_|  |_|\___|_|                                      
+ |_|  \\___/ \\__,_|_|  |_|\\___|_|                                      
  ''')
 
 
 def wave(hz):
-    global fs
+    """Takes in a frequency and outputs the sine wave for that frequency"""
     dur = float(input(f"Enter the duration for the {hz} Hz wave in seconds: "))
-    t_s = np.arange(fs * dur)
-    return np.sin(2 * np.pi * hz * t_s / fs)
+    t_s = np.arange(FS * dur)
+    return np.sin(2 * np.pi * hz * t_s / FS)
 
 
 def note_sum(waveforms):
+    """Takes in waveforms and outputs the note sums"""
     if len(waveforms) == 0:
         return np.zeros_like(waveforms[0])
 
     waveform_length = len(waveforms[0])
-    for waveform in waveforms:
-        if len(waveform) != waveform_length:
+    for wavef in waveforms:
+        if len(wavef) != waveform_length:
             raise ValueError("All waveforms must have the same length")
 
     result_waveform = np.sum(waveforms, axis=0)
@@ -36,60 +38,60 @@ def note_sum(waveforms):
     return result_waveform
 
 
-num_sections = 1000000000000
+NUM_SECTIONS = 1000000000000
 sections = [None] * 10000
 
-audio = 0
-live = False
+AUDIO = 0
+LIVE = False
 
-duration = 2
-mf = 0.1
+DURATION = 2
+MF = 0.1
 
 mode = input("Select mode (view docs): ")
 section_duration = float(
-    input("Enter the duration of each division in seconds: "))  # Duration of each section in seconds
-
+    input("Enter the duration of each division in seconds: "))  # Duration of each section
 
 if mode == "1":
-    duration = float(input("Enter the recording duration in seconds: "))
-    t_samples = np.arange(fs * duration)
+    DURATION = float(input("Enter the recording duration in seconds: "))
+    t_samples = np.arange(FS * DURATION)
 
     input("Press enter to start recording")
 
     print("Recording started.")
-    audio = sd.rec(int(duration * fs), samplerate=fs, channels=1)
+    AUDIO = sd.rec(int(DURATION * FS), samplerate=FS, channels=1)
     sd.wait()
     print("Recording finished.")
 
     sd.wait()
 
     # Flatten audio
-    audio = audio.flatten()
-    sd.play(audio, fs)
+    AUDIO = AUDIO.flatten()
+    sd.play(AUDIO, FS)
     # Split audio into sections
-    num_sections = int(duration / section_duration)
-    sections = np.array_split(audio, num_sections)
+    NUM_SECTIONS = int(DURATION / section_duration)
+    sections = np.array_split(AUDIO, NUM_SECTIONS)
 
 elif mode == "2":
 
     values = input("Enter the comma separated values for tone frequencies (Hz): ")
     waveform = note_sum([wave(int(x)) for x in values.split(",")])
 
-    waveform *= mf
+    waveform *= MF
 
-    audio = np.int16(waveform * 32767)
-    sd.play(audio, fs)
+    AUDIO = np.int16(waveform * 32767)
+    sd.play(AUDIO, FS)
     # Split audio into sections
-    num_sections = int(duration / section_duration)
-    sections = np.array_split(audio, num_sections)
+    NUM_SECTIONS = int(DURATION / section_duration)
+    sections = np.array_split(AUDIO, NUM_SECTIONS)
 
 elif mode == "3":
-    live = True
+    LIVE = True
 else:
     sys.exit("Invalid mode, exiting")
 
 
-def calculate_frequency(note_name):
+def calculate_frequency(nname):
+    """Calculate the notes"""
     # Define the reference frequency of A4 (440 Hz)
     reference_frequency = 440.0
 
@@ -105,16 +107,16 @@ def calculate_frequency(note_name):
     }
 
     # Extract the note name and octave number from the input
-    note_name = note_name.strip().upper()
+    nname = nname.strip().upper()
     try:
-        note = note_name[0]
-        octave = int(note_name[1])
-    except:
-        note = note_name[0] + note_name[1]
-        octave = int(note_name[2])
+        nt = nname[0]
+        octive_ = int(nname[1])
+    except ValueError:
+        nt = nname[0] + nname[1]
+        octive_ = int(nname[2])
 
     # Calculate the number of steps from A4
-    steps = note_steps[note] + (octave - 4) * 12
+    steps = note_steps[nt] + (octive_ - 4) * 12
 
     # Calculate the frequency using the formula: frequency = reference_frequency * 2^(steps/12)
     frequency = reference_frequency * pow(2, steps / 12)
@@ -126,13 +128,13 @@ notes = []
 accuracy = float(input('''
 How much do you want the average to be scaled by?
 Put a number between 1 and 1.5 if you have a lot of notes at the same time, and between 1 and 
-3 if you have less notes playing. Mess around with this value until you find what fits your audio.'''))
-for i in range(num_sections):
+3 if you have less notes playing. Change this until you find what fits your audio.'''))
+for i in range(NUM_SECTIONS):
     section = sections[i]
     # print("Analyzing section {}/{}".format(i + 1, num_sections))
-    new_audio = 0
-    if live is True:
-        a = sd.rec(int(section_duration * fs), samplerate=fs, channels=1)
+    NEW_AUDIO = 0
+    if LIVE is True:
+        a = sd.rec(int(section_duration * FS), samplerate=FS, channels=1)
         sd.wait()
         section = a.flatten()
         section = np.multiply(section, 1000)
@@ -141,7 +143,7 @@ for i in range(num_sections):
     F = np.fft.fftshift(np.fft.fft(np.fft.fftshift(section))) / len(section)
 
     # Find frequencies
-    freqs = np.fft.fftshift(np.fft.fftfreq(len(section), 1 / fs))
+    freqs = np.fft.fftshift(np.fft.fftfreq(len(section), 1 / FS))
 
     # Detect peaks
     peaks, _ = find_peaks(np.abs(F))
@@ -155,7 +157,7 @@ for i in range(num_sections):
     # print("Positive peak frequencies and musical notes:")
     for freq in positive_peak_frequencies:
         amp = np.abs(F)[np.where(freqs == freq)]
-        if freq > 7902.13 or freq < 27 or amp < 0.00004:  # Limit to B8 (7902.13 Hz) and amplitude threshold
+        if freq > 7902.13 or freq < 27 or amp < 0.00004:  # Limit to B8 (7902.13 Hz)
             continue
 
         played_frequencies.append(freq)
@@ -183,7 +185,7 @@ for i in range(num_sections):
         try:
             if note_count[note_string] < amp.item():
                 note_count[note_string] = amp.item()
-        except:
+        except ValueError:
             note_count[note_string] = amp.item()
 
     note_names_list = list(note_count.keys())
@@ -195,16 +197,15 @@ for i in range(num_sections):
     except ZeroDivisionError:
         avg = 0
 
-    output = ""
-
+    OUTPUT = ""
 
     for note in reversed(sorted(note_count.items(), key=lambda x: x[1])):
         if note[1] > avg * accuracy:
-            output += f"{note[0]} "
+            OUTPUT += f"{note[0]} "
 
     # print(note_count.keys())
-    if output != "":
-        print("Division", str(i) + ":", output)
+    if OUTPUT != "":
+        print("Division", str(i) + ":", OUTPUT)
     else:
         print("Division", str(i) + ": No notes found")
 
