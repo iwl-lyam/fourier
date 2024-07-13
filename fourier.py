@@ -187,7 +187,7 @@ for i in range(NUM_SECTIONS):
         try:
             if note_count[note_string] < amp.item():
                 note_count[note_string] = amp.item()
-        except ValueError:
+        except KeyError:
             note_count[note_string] = amp.item()
 
     note_names_list = list(note_count.keys())
