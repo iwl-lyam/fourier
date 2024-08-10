@@ -1,7 +1,7 @@
 {
-  "mode": 2,
-  "div_duration": 0.2,
-  "scale_filter": 5,
+  "mode": 1,
+  "div_duration": 0.3,
+  "scale_filter": 1,
   "frequencies": "440,220,880,500",
   "req_duration": 5
 }

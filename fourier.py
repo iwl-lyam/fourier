@@ -52,7 +52,7 @@ AUDIO = 0
 LIVE = False
 
 DURATION = 2
-MF = 0.5
+MF = 0.1
 
 CONFIG = read_config()
 
@@ -230,6 +230,13 @@ for i in range(NUM_SECTIONS):
         waveform = waveform / max_val
 
     waveform *= MF
+
+    a = np.linspace(0,1,220)
+
+    for j in range(220):
+        waveform[j] *= a[j]
+        waveform[-j] *= a[j]
+
     AUDIO = np.int16(waveform * 32767)
 
     if OUTPUT != "":
