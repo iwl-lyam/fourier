@@ -1,12 +1,10 @@
 """Fourier, a program to find notes from audio."""
 
 import sys
-import time
 import numpy as np
 import sounddevice as sd
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
-import math
 from config import read_config
 
 FS = 44100  # Sampling rate
@@ -59,12 +57,12 @@ MF = 0.5
 CONFIG = read_config()
 
 # mode = input("Select mode (view docs): ")
-mode = str(CONFIG['mode'])
+MODE = str(CONFIG['mode'])
 # section_duration = float(
 #     input("Enter the duration of each division in seconds: "))  # Duration of each section
-section_duration = float(CONFIG['div_duration'])
+SECTION_DURATION = float(CONFIG['div_duration'])
 
-if mode == "1":
+if MODE == "1":
     # DURATION = float(input("Enter the recording duration in seconds: "))
     DURATION = CONFIG['req_duration']
     t_samples = np.arange(FS * DURATION)
@@ -82,10 +80,10 @@ if mode == "1":
     AUDIO = AUDIO.flatten()
     sd.play(AUDIO, FS)
     # Split audio into sections
-    NUM_SECTIONS = int(DURATION / section_duration)
+    NUM_SECTIONS = int(DURATION / SECTION_DURATION)
     sections = np.array_split(AUDIO, NUM_SECTIONS)
 
-elif mode == "2":
+elif MODE == "2":
 
     # values = input("Enter the comma separated values for tone frequencies (Hz): ")
     values = CONFIG['frequencies']
@@ -97,10 +95,10 @@ elif mode == "2":
     AUDIO = np.int16(waveform * 32767)
     sd.play(AUDIO, FS)
     # Split audio into sections
-    NUM_SECTIONS = int(DURATION / section_duration)
+    NUM_SECTIONS = int(DURATION / SECTION_DURATION)
     sections = np.array_split(AUDIO, NUM_SECTIONS)
 
-elif mode == "3":
+elif MODE == "3":
     LIVE = True
 else:
     sys.exit("Invalid mode, exiting")
@@ -151,7 +149,7 @@ for i in range(NUM_SECTIONS):
     # print("Analyzing section {}/{}".format(i + 1, num_sections))
     NEW_AUDIO = 0
     if LIVE is True:
-        a = sd.rec(int(section_duration * FS), samplerate=FS, channels=1)
+        a = sd.rec(int(SECTION_DURATION * FS), samplerate=FS, channels=1)
         sd.wait()
         section = a.flatten()
         section = np.multiply(section, 1000)
@@ -215,13 +213,13 @@ for i in range(NUM_SECTIONS):
         AVG = 0
 
     OUTPUT = ""
-    OUTPUT_W = [sin(section_duration/2, 0)]
+    OUTPUT_W = [sin(SECTION_DURATION / 2, 0)]
     WAVE = []
 
     for note in reversed(sorted(note_count.items(), key=lambda x: x[1])):
         if note[1] > AVG * accuracy:
             frequency = calculate_frequency(note[0])
-            OUTPUT_W.append(sin(section_duration/2, frequency))
+            OUTPUT_W.append(sin(SECTION_DURATION / 2, frequency))
             OUTPUT += f"{note[0]} "
 
     # Sum the waveforms correctly
