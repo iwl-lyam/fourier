@@ -12,6 +12,29 @@ You will need the following from PIP:
 - scipy
 - matplotlib
 
+You will also need to download portaudio, good luck with that :)
+
+### Windows
+You probably will need to compile from source :(
+
+### Mac
+Install via Homebrew:
+`homebrew install portaudio`
+
+### GNU/Linux (it's not just linux you fools)
+
+I'd just like to interject for a moment. What you’re referring to as Linux, is in fact, GNU/Linux, or as I’ve recently taken to calling it, GNU plus Linux. Linux is not an operating system unto itself, but rather another free component of a fully functioning GNU system made useful by the GNU corelibs, shell utilities and vital system components comprising a full OS as defined by POSIX.
+Many computer users run a modified version of the GNU system every day, without realizing it. Through a peculiar turn of events, the version of GNU which is widely used today is often called “Linux”, and many of its users are not aware that it is basically the GNU system, developed by the GNU Project. There really is a Linux, and these people are using it, but it is just a part of the system they use.
+Linux is the kernel: the program in the system that allocates the machine’s resources to the other programs that you run. The kernel is an essential part of an operating system, but useless by itself; it can only function in the context of a complete operating system. Linux is normally used in combination with the GNU operating system: the whole system is basically GNU with Linux added, or GNU/Linux. All the so-called “Linux” distributions are really distributions of GNU/Linux.
+
+Right hopefully that scared you off
+#### Debian
+`sudo apt install portaudio19-dev`
+#### Fedora
+`sudo dnf install portaudio-devel`
+#### Arch Linux
+`sudo pacman -S portaudio`
+
 ## Configuration
 You will need a `config.json` file in your project, with the following fields:
 - mode
@@ -38,7 +61,7 @@ You do not need to include every field, but you need to include the fields requi
 - Divisions are what the program splits the input into 
   - In recording mode and pure tone mode, the input is split into as many divisions as the user requests.
   - In live mode, the microphone is enabled for the division length.
-  - The optimal division length is usually 0.3 seconds
+  - The optimal division length is usually 0.5 seconds
     - If the division length is too low, the fourier transform won't work properly and the output will be wrong.
     - If the division length is too high, the fourier transform will be applied over a longer audio file, therefore being less accurate. The computation speed for each division will be very slow as well.
 - For more accuracy in all modes, you should keep the average modifier between 1 and 1.5 when the texture of the input is thick (lots of notes) and between 1 and 5 when the input is thin (fewer notes). You will need to change this to fit your needs. It should not go below 1.
