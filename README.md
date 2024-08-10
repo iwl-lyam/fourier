@@ -1,4 +1,4 @@
-# Fourier 1.1.0
+# Fourier 1.0.0
 Fourier is a program that uses the Fast Fourier Transform to take in a sound input with 3 modes: Recording, Pure tone, and Live.
 
 - (1) Recording mode takes in a sound file and outputs the notes in the file.
