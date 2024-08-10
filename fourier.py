@@ -24,10 +24,10 @@ def wave(hz):
     return sin(dur, hz)
 
 
-def sin(dur, hz, amp=1):
+def sin(dur, hz, am=1):
     """Takes in a frequency and duration (s) and outputs the sin wave"""
     t_s = np.arange(FS * dur)
-    return amp * np.sin(2 * np.pi * hz * t_s / FS)
+    return am * np.sin(2 * np.pi * hz * t_s / FS)
 
 
 def note_sum(waveforms):
@@ -88,7 +88,6 @@ elif MODE == "2":
     # values = input("Enter the comma separated values for tone frequencies (Hz): ")
     values = CONFIG['frequencies']
     waveform = note_sum([wave(int(x)) for x in values.split(",")])
-    print([wave(int(x)) for x in values.split(",")])
 
     waveform *= MF
 
@@ -133,9 +132,9 @@ def calculate_frequency(nname):
     steps = note_steps[nt] + (octive_ - 4) * 12
 
     # Calculate the frequency using the formula: frequency = reference_frequency * 2^(steps/12)
-    frequency = reference_frequency * pow(2, steps / 12)
+    frequency_1 = reference_frequency * pow(2, steps / 12)
 
-    return frequency
+    return frequency_1
 
 
 notes = []
