@@ -12,6 +12,28 @@ You will need the following from PIP:
 - scipy
 - matplotlib
 
+## Configuration
+You will need a `config.json` file in your project, with the following fields:
+- mode
+- div_duration
+- scale_filter
+- _For mode 1:_
+  - req_duration
+- _For mode 2:_
+  - frequencies
+
+You do not need to include every field, but you need to include the fields required for your mode. Here is an example `config.json`:
+
+```json
+{
+  "mode": 3,
+  "div_duration": 0.5,
+  "scale_filter": 5,
+  "frequencies": "440,220,880,500",
+  "req_duration": 5
+}
+```
+
 ## Usage tips
 - Divisions are what the program splits the input into 
   - In recording mode and pure tone mode, the input is split into as many divisions as the user requests.
