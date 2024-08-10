@@ -1,11 +1,12 @@
 """Fourier, a program to find notes from audio."""
 
 import sys
-
+import time
 import numpy as np
 import sounddevice as sd
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
+import math
 
 FS = 44100  # Sampling rate
 
@@ -21,8 +22,13 @@ print('''
 def wave(hz):
     """Takes in a frequency and outputs the sine wave for that frequency"""
     dur = float(input(f"Enter the duration for the {hz} Hz wave in seconds: "))
+    return sin(dur, hz)
+
+
+def sin(dur, hz, amp=1):
+    """Takes in a frequency and duration (s) and outputs the sin wave"""
     t_s = np.arange(FS * dur)
-    return np.sin(2 * np.pi * hz * t_s / FS)
+    return amp * np.sin(2 * np.pi * hz * t_s / FS)
 
 
 def note_sum(waveforms):
@@ -47,7 +53,7 @@ AUDIO = 0
 LIVE = False
 
 DURATION = 2
-MF = 0.1
+MF = 0.5
 
 mode = input("Select mode (view docs): ")
 section_duration = float(
@@ -77,6 +83,7 @@ elif mode == "2":
 
     values = input("Enter the comma separated values for tone frequencies (Hz): ")
     waveform = note_sum([wave(int(x)) for x in values.split(",")])
+    print([wave(int(x)) for x in values.split(",")])
 
     waveform *= MF
 
@@ -200,14 +207,30 @@ for i in range(NUM_SECTIONS):
         AVG = 0
 
     OUTPUT = ""
+    OUTPUT_W = [sin(section_duration/4, 0)]
+    WAVE = []
 
     for note in reversed(sorted(note_count.items(), key=lambda x: x[1])):
         if note[1] > AVG * accuracy:
+            frequency = calculate_frequency(note[0])
+            OUTPUT_W.append(sin(section_duration/4, frequency))
             OUTPUT += f"{note[0]} "
 
-    # print(note_count.keys())
+    # Sum the waveforms correctly
+    waveform = note_sum(OUTPUT_W)
+
+    # Normalize the waveform to prevent clipping
+    max_val = np.max(np.abs(waveform))
+    if max_val > 0:
+        waveform = waveform / max_val
+
+    waveform *= MF
+    AUDIO = np.int16(waveform * 32767)
+
     if OUTPUT != "":
         print("Division", str(i) + ":", OUTPUT)
+        sd.play(AUDIO, FS)
+        sd.wait()
     else:
         print("Division", str(i) + ": No notes found")
 
