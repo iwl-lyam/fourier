@@ -1,11 +1,11 @@
 """Fourier, a program to find notes from audio."""
 
 import sys
-
 import numpy as np
 import sounddevice as sd
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
+from config import read_config
 
 FS = 44100  # Sampling rate
 
@@ -21,8 +21,13 @@ print('''
 def wave(hz):
     """Takes in a frequency and outputs the sine wave for that frequency"""
     dur = float(input(f"Enter the duration for the {hz} Hz wave in seconds: "))
+    return sin(dur, hz)
+
+
+def sin(dur, hz, am=1):
+    """Takes in a frequency and duration (s) and outputs the sin wave"""
     t_s = np.arange(FS * dur)
-    return np.sin(2 * np.pi * hz * t_s / FS)
+    return am * np.sin(2 * np.pi * hz * t_s / FS)
 
 
 def note_sum(waveforms):
@@ -47,14 +52,19 @@ AUDIO = 0
 LIVE = False
 
 DURATION = 2
-MF = 0.1
+MF = 0.5
 
-mode = input("Select mode (view docs): ")
-section_duration = float(
-    input("Enter the duration of each division in seconds: "))  # Duration of each section
+CONFIG = read_config()
 
-if mode == "1":
-    DURATION = float(input("Enter the recording duration in seconds: "))
+# mode = input("Select mode (view docs): ")
+MODE = str(CONFIG['mode'])
+# section_duration = float(
+#     input("Enter the duration of each division in seconds: "))  # Duration of each section
+SECTION_DURATION = float(CONFIG['div_duration'])
+
+if MODE == "1":
+    # DURATION = float(input("Enter the recording duration in seconds: "))
+    DURATION = CONFIG['req_duration']
     t_samples = np.arange(FS * DURATION)
 
     input("Press enter to start recording")
@@ -70,12 +80,13 @@ if mode == "1":
     AUDIO = AUDIO.flatten()
     sd.play(AUDIO, FS)
     # Split audio into sections
-    NUM_SECTIONS = int(DURATION / section_duration)
+    NUM_SECTIONS = int(DURATION / SECTION_DURATION)
     sections = np.array_split(AUDIO, NUM_SECTIONS)
 
-elif mode == "2":
+elif MODE == "2":
 
-    values = input("Enter the comma separated values for tone frequencies (Hz): ")
+    # values = input("Enter the comma separated values for tone frequencies (Hz): ")
+    values = CONFIG['frequencies']
     waveform = note_sum([wave(int(x)) for x in values.split(",")])
 
     waveform *= MF
@@ -83,10 +94,10 @@ elif mode == "2":
     AUDIO = np.int16(waveform * 32767)
     sd.play(AUDIO, FS)
     # Split audio into sections
-    NUM_SECTIONS = int(DURATION / section_duration)
+    NUM_SECTIONS = int(DURATION / SECTION_DURATION)
     sections = np.array_split(AUDIO, NUM_SECTIONS)
 
-elif mode == "3":
+elif MODE == "3":
     LIVE = True
 else:
     sys.exit("Invalid mode, exiting")
@@ -121,22 +132,23 @@ def calculate_frequency(nname):
     steps = note_steps[nt] + (octive_ - 4) * 12
 
     # Calculate the frequency using the formula: frequency = reference_frequency * 2^(steps/12)
-    frequency = reference_frequency * pow(2, steps / 12)
+    frequency_1 = reference_frequency * pow(2, steps / 12)
 
-    return frequency
+    return frequency_1
 
 
 notes = []
-accuracy = float(input('''
-How much do you want the average to be scaled by?
-Put a number between 1 and 1.5 if you have a lot of notes at the same time, and between 1 and 
-3 if you have less notes playing. Change this until you find what fits your audio.'''))
+# accuracy = float(input('''
+# How much do you want the average to be scaled by?
+# Put a number between 1 and 1.5 if you have a lot of notes at the same time, and between 1 and
+# 3 if you have less notes playing. Change this until you find what fits your audio.'''))
+accuracy = CONFIG["scale_filter"]
 for i in range(NUM_SECTIONS):
     section = sections[i]
     # print("Analyzing section {}/{}".format(i + 1, num_sections))
     NEW_AUDIO = 0
     if LIVE is True:
-        a = sd.rec(int(section_duration * FS), samplerate=FS, channels=1)
+        a = sd.rec(int(SECTION_DURATION * FS), samplerate=FS, channels=1)
         sd.wait()
         section = a.flatten()
         section = np.multiply(section, 1000)
@@ -200,14 +212,30 @@ for i in range(NUM_SECTIONS):
         AVG = 0
 
     OUTPUT = ""
+    OUTPUT_W = [sin(SECTION_DURATION / 2, 0)]
+    WAVE = []
 
     for note in reversed(sorted(note_count.items(), key=lambda x: x[1])):
         if note[1] > AVG * accuracy:
+            frequency = calculate_frequency(note[0])
+            OUTPUT_W.append(sin(SECTION_DURATION / 2, frequency))
             OUTPUT += f"{note[0]} "
 
-    # print(note_count.keys())
+    # Sum the waveforms correctly
+    waveform = note_sum(OUTPUT_W)
+
+    # Normalize the waveform to prevent clipping
+    max_val = np.max(np.abs(waveform))
+    if max_val > 0:
+        waveform = waveform / max_val
+
+    waveform *= MF
+    AUDIO = np.int16(waveform * 32767)
+
     if OUTPUT != "":
         print("Division", str(i) + ":", OUTPUT)
+        sd.play(AUDIO, FS)
+        sd.wait()
     else:
         print("Division", str(i) + ": No notes found")
 
