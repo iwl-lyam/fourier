@@ -37,9 +37,9 @@ Right hopefully that scared you off
 
 ## Configuration
 You will need a `config.json` file in your project, with the following fields:
-- mode
-- div_duration
-- scale_filter
+- mode (see above)
+- div_duration (length of each section to analyse)
+- scale_filter (how far to go above the average... kinda)
 - _For mode 1:_
   - req_duration
 - _For mode 2:_
