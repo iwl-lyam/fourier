@@ -7,6 +7,7 @@ import sounddevice as sd
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 import math
+from config import read_config
 
 FS = 44100  # Sampling rate
 
@@ -55,12 +56,17 @@ LIVE = False
 DURATION = 2
 MF = 0.5
 
-mode = input("Select mode (view docs): ")
-section_duration = float(
-    input("Enter the duration of each division in seconds: "))  # Duration of each section
+CONFIG = read_config()
+
+# mode = input("Select mode (view docs): ")
+mode = str(CONFIG['mode'])
+# section_duration = float(
+#     input("Enter the duration of each division in seconds: "))  # Duration of each section
+section_duration = float(CONFIG['div_duration'])
 
 if mode == "1":
-    DURATION = float(input("Enter the recording duration in seconds: "))
+    # DURATION = float(input("Enter the recording duration in seconds: "))
+    DURATION = CONFIG['req_duration']
     t_samples = np.arange(FS * DURATION)
 
     input("Press enter to start recording")
@@ -81,7 +87,8 @@ if mode == "1":
 
 elif mode == "2":
 
-    values = input("Enter the comma separated values for tone frequencies (Hz): ")
+    # values = input("Enter the comma separated values for tone frequencies (Hz): ")
+    values = CONFIG['frequencies']
     waveform = note_sum([wave(int(x)) for x in values.split(",")])
     print([wave(int(x)) for x in values.split(",")])
 
@@ -134,10 +141,11 @@ def calculate_frequency(nname):
 
 
 notes = []
-accuracy = float(input('''
-How much do you want the average to be scaled by?
-Put a number between 1 and 1.5 if you have a lot of notes at the same time, and between 1 and 
-3 if you have less notes playing. Change this until you find what fits your audio.'''))
+# accuracy = float(input('''
+# How much do you want the average to be scaled by?
+# Put a number between 1 and 1.5 if you have a lot of notes at the same time, and between 1 and
+# 3 if you have less notes playing. Change this until you find what fits your audio.'''))
+accuracy = CONFIG["scale_filter"]
 for i in range(NUM_SECTIONS):
     section = sections[i]
     # print("Analyzing section {}/{}".format(i + 1, num_sections))
@@ -207,13 +215,13 @@ for i in range(NUM_SECTIONS):
         AVG = 0
 
     OUTPUT = ""
-    OUTPUT_W = [sin(section_duration/4, 0)]
+    OUTPUT_W = [sin(section_duration/2, 0)]
     WAVE = []
 
     for note in reversed(sorted(note_count.items(), key=lambda x: x[1])):
         if note[1] > AVG * accuracy:
             frequency = calculate_frequency(note[0])
-            OUTPUT_W.append(sin(section_duration/4, frequency))
+            OUTPUT_W.append(sin(section_duration/2, frequency))
             OUTPUT += f"{note[0]} "
 
     # Sum the waveforms correctly
